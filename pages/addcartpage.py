@@ -1,35 +1,32 @@
-class AddCartPage:
+class CartPage:
     def __init__(self, page):
         self.page = page
-        # Cart page
-        self.cart_btn = page.locator("shopping_cart_container")   # Cart icon button
-        self.checkout_btn = page.locator("checkout")         # Checkout button on cart page
+        # Elements
+        self.cart_items = page.locator(".cart_item")
+        self.checkout_btn = page.locator("#checkout")
+        self.remove_buttons = page.locator(".cart_button")
+        self.cart_icon = page.locator(".shopping_cart_link")  # to open cart
 
-        # Checkout: Your Info
-        self.first_name_input = page.locator("first-name")
-        self.last_name_input = page.locator("last-name")
-        self.postal_code_input = page.locator("postal-code")
-        self.continue_btn = page.locator("continue")
-        self.error_msg = page.locator("h3[data-test='error']")  # Error message element
-
-    # Click cart button
+    # Open the cart page
     def open_cart(self):
-        self.cart_btn.click()
+        self.cart_icon.click()
 
-    # Click checkout button from cart
-    def click_checkout(self):
+    # Get list of product names in cart
+    def get_cart_items(self):
+        items = []
+        for i in range(self.cart_items.count()):
+            name = self.cart_items.nth(i).locator(".inventory_item_name").text_content()
+            items.append(name)
+        return items
+
+    # Remove a specific item by name
+    def remove_item(self, item_name):
+        for i in range(self.cart_items.count()):
+            name = self.cart_items.nth(i).locator(".inventory_item_name").text_content()
+            if name == item_name:
+                self.cart_items.nth(i).locator(".cart_button").click()
+                break
+
+    # Proceed to checkout
+    def proceed_to_checkout(self):
         self.checkout_btn.click()
-
-    # Fill customer info (we’ll fill selectively in tests)
-    def fill_first_name_only(self, first_name):
-        self.first_name_input.fill(first_name)
-        self.last_name_input.fill("")        # leave blank
-        self.postal_code_input.fill("")      # leave blank
-
-    # Click continue on checkout page
-    def click_continue(self):
-        self.continue_btn.click()
-
-    # Get error message if validation fails
-    def get_error_message(self):
-        return self.error_msg.text_content()
