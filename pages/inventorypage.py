@@ -1,44 +1,32 @@
-class InventoryPage:
-    def __init__(self, page):
+from playwright.sync_api import Page
+
+class Inventory:
+    def __init__(self, page: Page):
         self.page = page
-        self.first_product_name = page.locator(".inventory_item_name ").first
-        self.add_to_cart_buttons = page.locator(".add-to-cart")
-        self.cart_badge = page.locator(".shopping_cart_link")
-        self.sort_dropdown = page.locator(".product_sort_container")
-        self.product_names = page.locator(".inventory_item_name ")
-        self.product_prices = page.locator(".inventory_item_price")
-        self.product_images = page.locator(".inventory_item_img")
 
-    # Product actions
-    def open_first_product(self):
-        self.first_product_name.click()
+    # Get list of all product names
+    def get_product_list(self):
+        product_elements = self.page.locator(".inventory_item_name")
+        return [el.inner_text() for el in product_elements.all()]
 
-    def add_first_product(self):
-        self.add_to_cart_buttons.first.click()
+    # Add a product to cart by name
+    def add_to_cart(self, product_name):
+        # Locate the "Add to cart" button for the product dynamically
+        add_button = self.page.locator(f"div.inventory_item:has-text('{product_name}') button")
+        add_button.click()
 
-    def remove_first_product(self):
-        self.add_to_cart_buttons.first.click()  # button changes to "Remove"
+    # Remove a product from cart by name
+    def remove_from_cart(self, product_name):
+        remove_button = self.page.locator(f"div.inventory_item:has-text('{product_name}') button:has-text('Remove')")
+        remove_button.click()
 
-    # Sorting
-    def sort_products(self, option):
-        self.sort_dropdown.select_option(option)
-
-    # Helpers
+    # Get cart count
     def get_cart_count(self):
-        if self.cart_badge.count() == 0:
+        cart_badge = self.page.locator(".shopping_cart_badge")
+        if cart_badge.count() == 0:
             return 0
-        return int(self.cart_badge.text_content())
+        return int(cart_badge.inner_text())
 
-    def get_all_prices(self):
-        prices = []
-        for i in range(self.product_prices.count()):
-            text = self.product_prices.nth(i).text_content().replace("$","")
-            prices.append(float(text))
-        return prices
-
-    def are_products_visible(self):
-        return (
-            self.product_names.count() > 0 and
-            self.product_prices.count() > 0 and
-            self.product_images.count() > 0
-        )
+    # Go to cart page
+    def go_to_cart(self):
+        self.page.locator(".shopping_cart_link").click()
