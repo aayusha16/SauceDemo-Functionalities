@@ -1,58 +1,52 @@
-from pages.loginpage import Login
-from pages.inventorypage import InventoryPage
-from pages.cart_page import CartPage
+import pytest
+from pages.inventorypage import Inventory
+from pages.add_to_cartpage import CartPage
 
-def test_cart_items_match_added(page):
-    login = Login(page)
-    inventory = InventoryPage(page)
-    cart = CartPage(page)
+# Fixture: add products and navigate to cart
+@pytest.fixture
+def cart_with_products(logged_in_page):
+    inventory = Inventory(logged_in_page)
+    products_to_add = ["Sauce Labs Backpack", "Sauce Labs Bike Light"]
 
-    # Login
-    login.login("standard_user", "secret_sauce")
+    for product in products_to_add:
+        inventory.add_to_cart(product)
 
-    # Add two products
-    inventory.add_first_product()
-    inventory.add_first_product()  # add first product again for demo
+    inventory.go_to_cart()
+    logged_in_page.wait_for_selector(".cart_item")  # ensure cart loaded
 
-    # Open cart
-    cart.open_cart()
+    yield CartPage(logged_in_page)
 
-    # Get cart items
-    items = cart.get_cart_items()
 
-    # Check if cart has at least 1 item
-    assert len(items) >= 1
+@pytest.mark.cart
+def test_cart_products_displayed(cart_with_products):
+    """Verify all products added appear in the cart"""
+    cart = cart_with_products
+    products = cart.get_cart_products()
+    assert "Sauce Labs Backpack" in products
+    assert "Sauce Labs Bike Light" in products
 
-def test_remove_item_updates_cart(page):
-    login = Login(page)
-    inventory = InventoryPage(page)
-    cart = CartPage(page)
 
-    # Login and add product
-    login.login("standard_user", "secret_sauce")
-    inventory.add_first_product()
+@pytest.mark.cart
+def test_remove_product(cart_with_products):
+    """Remove a product and verify cart updates"""
+    cart = cart_with_products
+    cart.remove_product("Sauce Labs Backpack")
+    products = cart.get_cart_products()
+    assert "Sauce Labs Backpack" not in products
+    assert "Sauce Labs Bike Light" in products
 
-    cart.open_cart()
 
-    # Remove the product
-    first_item = cart.get_cart_items()[0]
-    cart.remove_item(first_item)
+@pytest.mark.cart
+def test_continue_shopping(cart_with_products):
+    """Click Continue Shopping goes back to inventory page"""
+    cart = cart_with_products
+    cart.continue_shopping()
+    assert "inventory.html" in cart.page.url  # fixed assertion
 
-    # Cart should be empty
-    assert len(cart.get_cart_items()) == 0
 
-def test_proceed_to_checkout(page):
-    login = Login(page)
-    inventory = InventoryPage(page)
-    cart = CartPage(page)
-
-    # Login and add product
-    login.login("standard_user", "secret_sauce")
-    inventory.add_first_product()
-
-    # Open cart and proceed to checkout
-    cart.open_cart()
-    cart.proceed_to_checkout()
-
-    # Assert URL contains checkout-step-one.html
-    assert "checkout-step-one.html" in page.url
+@pytest.mark.cart
+def test_checkout_navigation(cart_with_products):
+    """Click Checkout goes to checkout page"""
+    cart = cart_with_products
+    cart.go_to_checkout()
+    assert "checkout-step-one.html" in cart.page.url

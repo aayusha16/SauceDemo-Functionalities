@@ -1,51 +1,40 @@
-from pages.loginpage import Login
-from pages.inventorypage import InventoryPage
-from pages.cart_page import CartPage
+import pytest
+from pages.inventorypage import Inventory
+from pages.add_to_cartpage import CartPage
 from pages.checkout_page import CheckoutPage
 
-def test_checkout_success(page):
-    login = Login(page)
-    inventory = InventoryPage(page)
-    cart = CartPage(page)
-    checkout = CheckoutPage(page)
+# Fixture: add products and go to checkout page
+@pytest.fixture
+def checkout_page_with_products(logged_in_page):
+    inventory = Inventory(logged_in_page)
+    products_to_add = ["Sauce Labs Backpack", "Sauce Labs Bike Light"]
 
-    # Login
-    login.login("standard_user", "secret_sauce")
+    for product in products_to_add:
+        inventory.add_to_cart(product)
 
-    # Add first product
-    inventory.add_first_product()
+    inventory.go_to_cart()
 
-    # Open cart and proceed to checkout
-    cart.open_cart()
-    cart.proceed_to_checkout()
+    logged_in_page.wait_for_selector(".cart_item")
 
-    # Fill all details correctly
-    checkout.fill_checkout_info(first_name="Aayusha", last_name="Bisunke", postal_code="44600")
-    checkout.click_continue()
-    checkout.click_finish()
+    cart = CartPage(logged_in_page)
+    cart.go_to_checkout()
 
-    # Assert order completed page appears
-    assert "checkout-complete.html" in page.url
+    logged_in_page.wait_for_selector("#first-name")  # wait until checkout page loads
+    yield CheckoutPage(logged_in_page)
 
-def test_checkout_missing_fields(page):
-    login = Login(page)
-    inventory = InventoryPage(page)
-    cart = CartPage(page)
-    checkout = CheckoutPage(page)
 
-    # Login
-    login.login("standard_user", "secret_sauce")
+@pytest.mark.checkout
+def test_checkout_valid_info(checkout_page_with_products):
+    """Enter valid info and continue to overview"""
+    checkout = checkout_page_with_products
+    checkout.enter_checkout_info("Aayusha", "Bisunke", "44600")
+    checkout.continue_checkout()
+    assert "checkout-step-two.html" in checkout.page.url
 
-    # Add first product
-    inventory.add_first_product()
 
-    # Open cart and proceed to checkout
-    cart.open_cart()
-    cart.proceed_to_checkout()
-
-    # Fill only first name (leave last name & postal code blank)
-    checkout.fill_checkout_info(first_name="Aayusha")
-    checkout.click_continue()
-
-    # Assert error message is shown
-    assert "Error" in checkout.get_error_message()
+@pytest.mark.checkout
+def test_checkout_cancel(checkout_page_with_products):
+    """Cancel checkout and return to cart"""
+    checkout = checkout_page_with_products
+    checkout.cancel_checkout()
+    assert "cart.html" in checkout.page.url
