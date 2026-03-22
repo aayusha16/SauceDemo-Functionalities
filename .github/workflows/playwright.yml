@@ -1,0 +1,39 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4   # clones repo in runner
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          python -m playwright install
+
+      - name: Collect tests
+        run: |
+          pwd
+          ls -R
+          pytest ./tests --html=report.html --self-contained-html
+
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-report
+          path: report.html

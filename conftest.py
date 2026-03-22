@@ -43,7 +43,26 @@ def logged_in_page(browser):
     yield page
     context.close()
 
+import os
+import pytest
 
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    outcome = yield
+    report = outcome.get_result()
+
+    if report.when == "call" and report.failed:
+        # Try to get page from different fixtures
+        page = item.funcargs.get("page", None) or item.funcargs.get("logged_in_page", None)
+
+        if page:
+            # Ensure screenshots folder exists
+            os.makedirs("screenshots", exist_ok=True)
+
+            screenshot_path = f"screenshots/{item.name}.png"
+
+            page.screenshot(path=screenshot_path)
+            logger.error(f"Screenshot saved: {screenshot_path}")
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "login: mark test as login test")

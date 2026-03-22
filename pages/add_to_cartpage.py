@@ -20,4 +20,4 @@ class CartPage:
 
     def go_to_checkout(self):
         """Click 'Checkout' button to go to checkout page"""
-        self.page.locator(".checkout_button").click()
+        self.page.locator("text=Checkout").click()  # safer than class
